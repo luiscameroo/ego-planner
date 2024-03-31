@@ -70,9 +70,9 @@ int main(int argc, char **argv)
 
   // Rates to define how often to check to go next step
   ros::Rate loop_rate(10);
-  ros::Rate wait_rate(0.1);
 
   // Main Loop
+  bool starting = false;
   int count = 0;
   while (ros::ok())
   {
@@ -94,18 +94,19 @@ int main(int argc, char **argv)
       continue; 
     }
 
-    if(SPEED <= 0.00001)
+    // Move to next pose
+    if(SPEED <= 0.00001 && !starting)
     {
       if(count >= int(goals.size())) break;
+      starting = true;
       ROS_INFO("Stopped. Speed: %.3f. Move to next point.", SPEED);
       // Publish Goal Pose
       goal_pub.publish(goals[count]);
       ++count;
-      // Wait for motion to commence
-      wait_rate.sleep();
     }
     else
     {
+      starting = false; 
       ROS_INFO("Moving at speed %.3f...", SPEED);
     }
 
