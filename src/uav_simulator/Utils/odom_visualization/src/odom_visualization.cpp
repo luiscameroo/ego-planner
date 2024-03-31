@@ -46,6 +46,7 @@ visualization_msgs::Marker sensorROS;
 visualization_msgs::Marker meshROS;
 sensor_msgs::Range         heightROS;
 string _frame_id;
+string prefix;
 
 void odom_callback(const nav_msgs::Odometry::ConstPtr& msg)
 {
@@ -312,7 +313,8 @@ void odom_callback(const nav_msgs::Odometry::ConstPtr& msg)
 
   // Laser height measurement
   double H = msg->twist.covariance[32];
-  heightROS.header.frame_id = string("height");
+  //heightROS.header.frame_id = string("height");
+  heightROS.header.frame_id = prefix + string("height");
   heightROS.header.stamp = msg->header.stamp;
   heightROS.radiation_type = sensor_msgs::Range::ULTRASOUND;
   heightROS.field_of_view = 5.0 * M_PI / 180.0;
@@ -376,10 +378,10 @@ void odom_callback(const nav_msgs::Odometry::ConstPtr& msg)
     colvec q90 = R_to_quaternion(ypr_to_R(p90));  
     transform90.setRotation(tf::Quaternion(q90(1), q90(2), q90(3), q90(0)));  
 
-    broadcaster->sendTransform(tf::StampedTransform(transform,   msg->header.stamp, string("world"),  string("base")));      
-    broadcaster->sendTransform(tf::StampedTransform(transform45, msg->header.stamp, string("base"), string("laser")));          
-    broadcaster->sendTransform(tf::StampedTransform(transform45, msg->header.stamp, string("base"), string("vision")));          
-    broadcaster->sendTransform(tf::StampedTransform(transform90, msg->header.stamp, string("base"), string("height")));          
+    broadcaster->sendTransform(tf::StampedTransform(transform,   msg->header.stamp, string("world"),  prefix + string("base")));      
+    broadcaster->sendTransform(tf::StampedTransform(transform45, msg->header.stamp, string("base"),   prefix + string("laser")));          
+    broadcaster->sendTransform(tf::StampedTransform(transform45, msg->header.stamp, string("base"),   prefix + string("vision")));          
+    broadcaster->sendTransform(tf::StampedTransform(transform90, msg->header.stamp, string("base"),   prefix + string("height")));          
   } 
 }
 
@@ -444,6 +446,7 @@ int main(int argc, char** argv)
   n.param("origin", origin, false);  
   n.param("robot_scale", scale, 2.0);    
   n.param("frame_id",   _frame_id, string("world") );    
+  n.param("prefix", prefix, string(""));
  
   n.param("cross_config", cross_config, false);    
   n.param("tf45", tf45, false);    
