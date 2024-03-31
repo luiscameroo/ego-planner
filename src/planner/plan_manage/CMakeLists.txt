@@ -52,6 +52,13 @@ include_directories(
   ${PCL_INCLUDE_DIRS}
 )
 
+add_executable(search_node
+  src/search_planner.cpp
+)
+target_link_libraries(search_node
+  ${catkin_LIBRARIES}
+)
+add_dependencies(search_node ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
 add_executable(ego_planner_node
   src/ego_planner_node.cpp 
