@@ -6,110 +6,128 @@
 #include <std_msgs/String.h>
 #include <nav_msgs/Odometry.h>
 
-float SPEED = 100;
+float speed[] = {100, 100, 100, 100};
 
-void OdomCallback(const nav_msgs::Odometry msg)
+void OdomCallback(const nav_msgs::Odometry msg, int i)
 {
   float vel_x = msg.twist.twist.linear.x;
   float vel_y = msg.twist.twist.linear.y;
   float vel_z = msg.twist.twist.linear.z;
   
-  SPEED = std::sqrt(vel_x * vel_x + vel_y * vel_y + vel_z * vel_z);
+  speed[i] = std::sqrt(vel_x * vel_x + vel_y * vel_y + vel_z * vel_z);
 }
+
+void OdomCallback0(const nav_msgs::Odometry msg) { OdomCallback(msg, 0); }
+void OdomCallback1(const nav_msgs::Odometry msg) { OdomCallback(msg, 1); }
+void OdomCallback2(const nav_msgs::Odometry msg) { OdomCallback(msg, 2); }
+void OdomCallback3(const nav_msgs::Odometry msg) { OdomCallback(msg, 3); }
 
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "search_node");
   ros::NodeHandle nh("~");
 
-  // Publisher to send goal to ego_planner
-  ros::Publisher goal_pub = nh.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 10);
+  // Publishers
+  ros::Publisher goal_pub[] = {
+    nh.advertise<geometry_msgs::PoseStamped>("/drone_0/waypoint_generator/move_base_simple/goal", 10),
+    nh.advertise<geometry_msgs::PoseStamped>("/drone_1/waypoint_generator/move_base_simple/goal", 10),
+    nh.advertise<geometry_msgs::PoseStamped>("/drone_2/waypoint_generator/move_base_simple/goal", 10),
+    nh.advertise<geometry_msgs::PoseStamped>("/drone_3/waypoint_generator/move_base_simple/goal", 10)
+  };
 
-  // Subscriber to read odometry messages
-  ros::Subscriber odom_sub = nh.subscribe("/visual_slam/odom", 1000, OdomCallback);
+  // Odometry
+  ros::Subscriber odom_sub[] = {
+    nh.subscribe("/drone_0/visual_slam/odom", 1000, OdomCallback0),
+    nh.subscribe("/drone_1/visual_slam/odom", 1000, OdomCallback1),
+    nh.subscribe("/drone_2/visual_slam/odom", 1000, OdomCallback2),
+    nh.subscribe("/drone_3/visual_slam/odom", 1000, OdomCallback3)
+  };
 
-  // Subsciber to Listen to transform
+  // Transforms
   tf2_ros::Buffer tf_buffer;
   tf2_ros::TransformListener tf_listener(tf_buffer);
+
+  // Publisher to send goal to ego_planner
+  //ros::Publisher goal_pub = nh.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 10);
+
+  // Subscriber to read odometry messages
+  //ros::Subscriber odom_sub = nh.subscribe("/visual_slam/odom", 1000, OdomCallback);
 
   // List of goal pose
   std::vector<geometry_msgs::PoseStamped> goals; 
 
 
   // Add poses that go to each of the four corners
-  float min_x = -15;
-  float max_x = 15;
-  float min_y = -15;
-  float max_y = 15;
+  float x = 21;
+  float y = 21;
 
   geometry_msgs::PoseStamped goal;
-  goal.pose.position.x = min_x;
-  goal.pose.position.y = min_y;
+  goal.pose.position.x = -x;
+  goal.pose.position.y = -y;
   goal.pose.position.z = 1.0;
   goals.push_back(goal);
 
-  goal.pose.position.x = min_x;
-  goal.pose.position.y = max_y;
+  goal.pose.position.x = -x;
+  goal.pose.position.y = y;
   goal.pose.position.z = 1.0;
   goals.push_back(goal);
 
-  goal.pose.position.x = max_x;
-  goal.pose.position.y = max_y;
+  goal.pose.position.x = x;
+  goal.pose.position.y = -y;
   goal.pose.position.z = 1.0;
   goals.push_back(goal);
 
-  goal.pose.position.x = max_x;
-  goal.pose.position.y = min_y;
+  goal.pose.position.x = x;
+  goal.pose.position.y = y;
   goal.pose.position.z = 1.0;
   goals.push_back(goal);
 
-  goal.pose.position.x = min_x;
-  goal.pose.position.y = min_y;
-  goal.pose.position.z = 1.0;
-  goals.push_back(goal);
 
   // Rates to define how often to check to go next step
   ros::Rate loop_rate(10);
 
   // Main Loop
-  bool starting = false;
+  bool starting[] = {false, false, false, false};
   int count = 0;
   while (ros::ok())
   {
-    // Get the current pose of the drone
-    geometry_msgs::TransformStamped tf;
-    try
+    // For each drone
+    for(int i = 0; i < 4; i++)
     {
-      tf = tf_buffer.lookupTransform("world", "base", ros::Time(0));
-      ROS_INFO("Position: %.3f, %.3f, %.3f",
-        tf.transform.translation.x,
-        tf.transform.translation.y,
-        tf.transform.translation.z
-      );
-    }
-    catch (tf2::TransformException &ex)
-    {
-      ROS_WARN("%s", ex.what());
-      ros::Duration(1.0).sleep();
-      continue; 
-    }
+      // Get the pose of drone i
+      geometry_msgs::TransformStamped tf;
+      try
+      {
+        tf = tf_buffer.lookupTransform("world", "drone_" + std::to_string(i) + "_base", ros::Time(0));
+        // ROS_INFO("Position: %.3f, %.3f, %.3f",
+        //   tf.transform.translation.x,
+        //   tf.transform.translation.y,
+        //   tf.transform.translation.z
+        // );
+      }
+      // Failed to get the pose of drone i
+      catch (tf2::TransformException &ex)
+      {
+        ROS_WARN("%s", ex.what());
+        ros::Duration(1.0).sleep();
+        continue; 
+      }
 
-    // Move to next pose
-    if(SPEED <= 0.00001 && !starting)
-    {
-      if(count >= int(goals.size())) break;
-      starting = true;
-      ROS_INFO("Stopped. Speed: %.3f. Move to next point.", SPEED);
-      // Publish Goal Pose
-      goal_pub.publish(goals[count]);
-      ++count;
+      // Command drone i
+      if(speed[i] <= 0.00001 && !starting[i]) // check if stopped
+      {
+        if(count >= int(goals.size())) break; // if no more goals stop
+        starting[i] = true;
+        ROS_INFO("Moving drone %d to next point.", i);
+        goal_pub[i].publish(goals[i]);
+        ++count;
+      }
+      // Not stopped
+      else
+      {
+        starting[i] = false; 
+      }
     }
-    else
-    {
-      starting = false; 
-      ROS_INFO("Moving at speed %.3f...", SPEED);
-    }
-
     ros::spinOnce();
     loop_rate.sleep();
   }

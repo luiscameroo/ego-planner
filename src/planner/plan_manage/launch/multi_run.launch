@@ -39,8 +39,8 @@
 
   <!-- Spawn First Robot -->
   <include file="$(find ego_planner)/launch/single_drone.launch">
-    <arg name="ns"         value="drone_1"/>
-    <arg name="odom_topic" value="/drone_1/visual_slam/odom"/>
+    <arg name="ns"         value="drone_0"/>
+    <arg name="odom_topic" value="/drone_0/visual_slam/odom"/>
     <arg name="map_size_x" value="$(arg map_size)"/>
     <arg name="map_size_y" value="$(arg map_size)"/>
     <arg name="map_size_z" value=" 3.0"/>
@@ -50,8 +50,8 @@
   </include>
   <!-- Spawn Second Robot -->
   <include file="$(find ego_planner)/launch/single_drone.launch">
-    <arg name="ns"         value="drone_2"/>
-    <arg name="odom_topic" value="/drone_2/visual_slam/odom"/>
+    <arg name="ns"         value="drone_1"/>
+    <arg name="odom_topic" value="/drone_1/visual_slam/odom"/>
     <arg name="map_size_x" value="$(arg map_size)"/>
     <arg name="map_size_y" value="$(arg map_size)"/>
     <arg name="map_size_z" value=" 3.0"/>
@@ -61,8 +61,8 @@
   </include>
   <!-- Spawn Third Robot -->
   <include file="$(find ego_planner)/launch/single_drone.launch">
-    <arg name="ns"         value="drone_3"/>
-    <arg name="odom_topic" value="/drone_3/visual_slam/odom"/>
+    <arg name="ns"         value="drone_2"/>
+    <arg name="odom_topic" value="/drone_2/visual_slam/odom"/>
     <arg name="map_size_x" value="$(arg map_size)"/>
     <arg name="map_size_y" value="$(arg map_size)"/>
     <arg name="map_size_z" value=" 3.0"/>
@@ -72,8 +72,8 @@
   </include>
   <!-- Spawn Fourth Robot -->
   <include file="$(find ego_planner)/launch/single_drone.launch">
-    <arg name="ns"         value="drone_4"/>
-    <arg name="odom_topic" value="/drone_4/visual_slam/odom"/>
+    <arg name="ns"         value="drone_3"/>
+    <arg name="odom_topic" value="/drone_3/visual_slam/odom"/>
     <arg name="map_size_x" value="$(arg map_size)"/>
     <arg name="map_size_y" value="$(arg map_size)"/>
     <arg name="map_size_z" value=" 3.0"/>
