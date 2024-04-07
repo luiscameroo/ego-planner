@@ -5,7 +5,7 @@
   <arg name="map_size_z" value=" 3.0"/>
 
   <!-- Generate map -->
-  <node pkg="mockamap" type="mockamap_node" name="mockamap_node" output="screen">  
+  <node pkg="mockamap" type="mockamap_node" name="mockamap_node" output="screen">
       <remap from="/mock_map" to="/map_generator/global_cloud"/>
 
       <param name="seed" type="int" value="127"/>
@@ -45,7 +45,7 @@
     <arg name="map_size_z" value=" 3.0"/>
     <arg name="init_x" value="-18.0"/>
     <arg name="init_y" value="0.0"/>
-    <arg name="init_z" value="0.0"/> 
+    <arg name="init_z" value="0.0"/>
   </include>
   <!-- Spawn Second Robot -->
   <include file="$(find ego_planner)/launch/single_drone.launch">
@@ -56,6 +56,6 @@
     <arg name="map_size_z" value=" 3.0"/>
     <arg name="init_x" value="18.0"/>
     <arg name="init_y" value="0.0"/>
-    <arg name="init_z" value="0.0"/> 
+    <arg name="init_z" value="0.0"/>
   </include>
 </launch>
