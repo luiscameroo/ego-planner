@@ -30,55 +30,81 @@
       <!-- fractal:       large value will have more detail-->
       <!-- attenuation:   for fractal attenuation
                               typical: 0.0 ~ 0.5 -->
-
+<!-- 
       <param name="complexity"    type="double" value="0.05"/>
       <param name="fill"          type="double" value="0.12"/>
       <param name="fractal"       type="int"    value="1"/>
-      <param name="attenuation"   type="double" value="0.1"/>
+      <param name="attenuation"   type="double" value="0.1"/> -->
+      <param name="complexity"    type="double" value="0.01"/>
+      <param name="fill"          type="double" value="0.01"/>
+      <param name="fractal"       type="int"    value="1"/>
+      <param name="attenuation"   type="double" value="0.01"/>
   </node>
 
-  <!-- Spawn First Robot -->
+  <!-- Spawn First Pursuer -->
   <include file="$(find ego_planner)/launch/single_drone.launch">
     <arg name="ns"         value="drone_0"/>
     <arg name="odom_topic" value="/drone_0/visual_slam/odom"/>
     <arg name="map_size_x" value="$(arg map_size)"/>
     <arg name="map_size_y" value="$(arg map_size)"/>
     <arg name="map_size_z" value=" 3.0"/>
-    <arg name="init_x" value="21.0"/>
-    <arg name="init_y" value="21.0"/>
+    <arg name="init_x" value="-22.0"/>
+    <arg name="init_y" value="2.5"/>
     <arg name="init_z" value="0.0"/>
   </include>
-  <!-- Spawn Second Robot -->
+  <!-- Spawn Second Pursuer -->
   <include file="$(find ego_planner)/launch/single_drone.launch">
     <arg name="ns"         value="drone_1"/>
     <arg name="odom_topic" value="/drone_1/visual_slam/odom"/>
     <arg name="map_size_x" value="$(arg map_size)"/>
     <arg name="map_size_y" value="$(arg map_size)"/>
     <arg name="map_size_z" value=" 3.0"/>
-    <arg name="init_x" value="21.0"/>
-    <arg name="init_y" value="-21.0"/>
+    <arg name="init_x" value="-22.0"/>
+    <arg name="init_y" value="-0.0"/>
     <arg name="init_z" value="0.0"/>
   </include>
-  <!-- Spawn Third Robot -->
+  <!-- Spawn Third Pursuer -->
   <include file="$(find ego_planner)/launch/single_drone.launch">
     <arg name="ns"         value="drone_2"/>
     <arg name="odom_topic" value="/drone_2/visual_slam/odom"/>
     <arg name="map_size_x" value="$(arg map_size)"/>
     <arg name="map_size_y" value="$(arg map_size)"/>
     <arg name="map_size_z" value=" 3.0"/>
-    <arg name="init_x" value="-21.0"/>
-    <arg name="init_y" value="21.0"/>
+    <arg name="init_x" value="-22.0"/>
+    <arg name="init_y" value="-2.5"/>
     <arg name="init_z" value="0.0"/>
   </include>
-  <!-- Spawn Fourth Robot -->
+  <!-- Spawn Fourth Pursuer -->
   <include file="$(find ego_planner)/launch/single_drone.launch">
     <arg name="ns"         value="drone_3"/>
     <arg name="odom_topic" value="/drone_3/visual_slam/odom"/>
     <arg name="map_size_x" value="$(arg map_size)"/>
     <arg name="map_size_y" value="$(arg map_size)"/>
     <arg name="map_size_z" value=" 3.0"/>
-    <arg name="init_x" value="-21.0"/>
-    <arg name="init_y" value="-21.0"/>
+    <arg name="init_x" value="-22.0"/>
+    <arg name="init_y" value="-5.0"/>
+    <arg name="init_z" value="0.0"/>
+  </include>
+  <!-- Spawn First Target -->
+  <include file="$(find ego_planner)/launch/single_drone.launch">
+    <arg name="ns"         value="drone_4"/>
+    <arg name="odom_topic" value="/drone_4/visual_slam/odom"/>
+    <arg name="map_size_x" value="$(arg map_size)"/>
+    <arg name="map_size_y" value="$(arg map_size)"/>
+    <arg name="map_size_z" value=" 3.0"/>
+    <arg name="init_x" value="5.0"/>
+    <arg name="init_y" value="5.0"/>
+    <arg name="init_z" value="0.0"/>
+  </include>
+  <!-- Spawn Second Target -->
+  <include file="$(find ego_planner)/launch/single_drone.launch">
+    <arg name="ns"         value="drone_5"/>
+    <arg name="odom_topic" value="/drone_5/visual_slam/odom"/>
+    <arg name="map_size_x" value="$(arg map_size)"/>
+    <arg name="map_size_y" value="$(arg map_size)"/>
+    <arg name="map_size_z" value=" 3.0"/>
+    <arg name="init_x" value="-5.0"/>
+    <arg name="init_y" value="-5.0"/>
     <arg name="init_z" value="0.0"/>
   </include>
 </launch>

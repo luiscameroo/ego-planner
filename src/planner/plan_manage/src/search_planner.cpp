@@ -6,7 +6,21 @@
 #include <std_msgs/String.h>
 #include <nav_msgs/Odometry.h>
 
-float speed[] = {100, 100, 100, 100};
+float speed[] = {100, 100, 100, 100, 100, 100};
+
+bool inRange(geometry_msgs::PoseStamped pose, geometry_msgs::TransformStamped tf, float range)
+{
+  float x = pose.pose.position.x - tf.transform.translation.x;
+  float y = pose.pose.position.y - tf.transform.translation.y; 
+  return ((x * x + y * y) <= range * range);
+}
+
+bool inRange(geometry_msgs::TransformStamped tf_0, geometry_msgs::TransformStamped tf_1, float range)
+{
+  float x = tf_0.transform.translation.x - tf_1.transform.translation.x;
+  float y = tf_0.transform.translation.y - tf_1.transform.translation.y; 
+  return ((x * x + y * y) <= range * range);
+}
 
 void OdomCallback(const nav_msgs::Odometry msg, int i)
 {
@@ -21,6 +35,8 @@ void OdomCallback0(const nav_msgs::Odometry msg) { OdomCallback(msg, 0); }
 void OdomCallback1(const nav_msgs::Odometry msg) { OdomCallback(msg, 1); }
 void OdomCallback2(const nav_msgs::Odometry msg) { OdomCallback(msg, 2); }
 void OdomCallback3(const nav_msgs::Odometry msg) { OdomCallback(msg, 3); }
+void OdomCallback4(const nav_msgs::Odometry msg) { OdomCallback(msg, 4); }
+void OdomCallback5(const nav_msgs::Odometry msg) { OdomCallback(msg, 5); }
 
 int main(int argc, char **argv)
 {
@@ -32,7 +48,9 @@ int main(int argc, char **argv)
     nh.advertise<geometry_msgs::PoseStamped>("/drone_0/waypoint_generator/move_base_simple/goal", 10),
     nh.advertise<geometry_msgs::PoseStamped>("/drone_1/waypoint_generator/move_base_simple/goal", 10),
     nh.advertise<geometry_msgs::PoseStamped>("/drone_2/waypoint_generator/move_base_simple/goal", 10),
-    nh.advertise<geometry_msgs::PoseStamped>("/drone_3/waypoint_generator/move_base_simple/goal", 10)
+    nh.advertise<geometry_msgs::PoseStamped>("/drone_3/waypoint_generator/move_base_simple/goal", 10),
+    nh.advertise<geometry_msgs::PoseStamped>("/drone_4/waypoint_generator/move_base_simple/goal", 10),
+    nh.advertise<geometry_msgs::PoseStamped>("/drone_5/waypoint_generator/move_base_simple/goal", 10)
   };
 
   // Odometry
@@ -40,94 +58,156 @@ int main(int argc, char **argv)
     nh.subscribe("/drone_0/visual_slam/odom", 1000, OdomCallback0),
     nh.subscribe("/drone_1/visual_slam/odom", 1000, OdomCallback1),
     nh.subscribe("/drone_2/visual_slam/odom", 1000, OdomCallback2),
-    nh.subscribe("/drone_3/visual_slam/odom", 1000, OdomCallback3)
+    nh.subscribe("/drone_3/visual_slam/odom", 1000, OdomCallback3),
+    nh.subscribe("/drone_4/visual_slam/odom", 1000, OdomCallback4),
+    nh.subscribe("/drone_5/visual_slam/odom", 1000, OdomCallback5)
   };
 
   // Transforms
   tf2_ros::Buffer tf_buffer;
   tf2_ros::TransformListener tf_listener(tf_buffer);
-
-  // Publisher to send goal to ego_planner
-  //ros::Publisher goal_pub = nh.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 10);
-
-  // Subscriber to read odometry messages
-  //ros::Subscriber odom_sub = nh.subscribe("/visual_slam/odom", 1000, OdomCallback);
+  geometry_msgs::TransformStamped poses[6];
 
   // List of goal pose
-  std::vector<geometry_msgs::PoseStamped> goals; 
-
-
-  // Add poses that go to each of the four corners
-  float x = 21;
-  float y = 21;
-
+  bool at_target[6];
   geometry_msgs::PoseStamped goal;
-  goal.pose.position.x = -x;
-  goal.pose.position.y = -y;
+  geometry_msgs::PoseStamped goals[6]; 
+
+  // Search
+  bool move_lateral[4] = {true, true, true, true};
+
+  // Circle
+  int target_pose_index[] = {0, 2};
+  geometry_msgs::PoseStamped circle[4];
+
+  goal.pose.position.x = 5.0;
+  goal.pose.position.y = 5.0;
   goal.pose.position.z = 1.0;
-  goals.push_back(goal);
-
-  goal.pose.position.x = -x;
-  goal.pose.position.y = y;
+  circle[0] = goal;
+  goal.pose.position.x = -5.0;
+  goal.pose.position.y = 5.0;
   goal.pose.position.z = 1.0;
-  goals.push_back(goal);
-
-  goal.pose.position.x = x;
-  goal.pose.position.y = -y;
+  circle[1] = goal;
+  goal.pose.position.x = -5.0;
+  goal.pose.position.y = -5.0;
   goal.pose.position.z = 1.0;
-  goals.push_back(goal);
-
-  goal.pose.position.x = x;
-  goal.pose.position.y = y;
+  circle[2] = goal;
+  goal.pose.position.x = 5.0;
+  goal.pose.position.y = -5.0;
   goal.pose.position.z = 1.0;
-  goals.push_back(goal);
-
-
+  circle[3] = goal;
+  
   // Rates to define how often to check to go next step
-  ros::Rate loop_rate(10);
+  ros::Rate loop_rate(1);
 
+  bool first_success = true;
   // Main Loop
-  bool starting[] = {false, false, false, false};
-  int count = 0;
   while (ros::ok())
   {
-    // For each drone
-    for(int i = 0; i < 4; i++)
+    bool in_pursuit[4] = {false, false, false, false};
+
+    // Get Position of Each Drone
+    bool tf_success = true; 
+    for(int i = 0; i < 6; i++)
     {
-      // Get the pose of drone i
-      geometry_msgs::TransformStamped tf;
       try
       {
-        tf = tf_buffer.lookupTransform("world", "drone_" + std::to_string(i) + "_base", ros::Time(0));
-        // ROS_INFO("Position: %.3f, %.3f, %.3f",
-        //   tf.transform.translation.x,
-        //   tf.transform.translation.y,
-        //   tf.transform.translation.z
-        // );
+        poses[i] = tf_buffer.lookupTransform(
+            "world", 
+            "drone_" + std::to_string(i) + "_base", 
+            ros::Time(0));
       }
-      // Failed to get the pose of drone i
-      catch (tf2::TransformException &ex)
+      catch(tf2::TransformException &ex)
       {
-        ROS_WARN("%s", ex.what());
-        ros::Duration(1.0).sleep();
-        continue; 
-      }
-
-      // Command drone i
-      if(speed[i] <= 0.00001 && !starting[i]) // check if stopped
-      {
-        if(count >= int(goals.size())) break; // if no more goals stop
-        starting[i] = true;
-        ROS_INFO("Moving drone %d to next point.", i);
-        goal_pub[i].publish(goals[i]);
-        ++count;
-      }
-      // Not stopped
-      else
-      {
-        starting[i] = false; 
+        //ROS_WARN("%s", ex.what()); 
+        tf_success = false;
       }
     }
+    if(!tf_success) {continue;}
+    else
+    {
+      if(first_success)
+      {
+        for(int i = 0; i < 6; i++)
+        {
+          goal.pose.position.x = poses[i].transform.translation.x;
+          goal.pose.position.y = poses[i].transform.translation.y;
+          goal.pose.position.z = poses[i].transform.translation.z;
+          goals[i] = goal;
+        }
+        first_success = false;
+      }
+    }
+
+    // Check if Drones are close to their Goals
+    for(int i = 0; i < 6; i++)
+    {
+      at_target[i] = inRange(goals[i], poses[i], 0.5);
+    }
+
+    // Check if Pursuers are Close to Targets
+    for(int i = 0; i < 4; i++)
+    {
+      for(int j = 4; j < 5; j++)
+      {
+        if(inRange(poses[i], poses[j], 5))
+        {
+          goal.pose.position.x = poses[j].transform.translation.x;
+          goal.pose.position.y = poses[j].transform.translation.y;
+          goal.pose.position.z = poses[j].transform.translation.z;
+          goals[i] = goal;
+          in_pursuit[i] = true;
+        }
+      }
+    }
+
+    // Set Goals for Pursuers
+    for(int i = 0; i < 4; i++)
+    {
+      if(at_target[i] && !in_pursuit[i])
+      {
+        if(move_lateral[i])
+        {
+          goal.pose.position.x = -poses[i].transform.translation.x;
+          goal.pose.position.y = poses[i].transform.translation.y;
+          goal.pose.position.z = poses[i].transform.translation.z;
+          move_lateral[i] = !move_lateral[i];
+          goals[i] = goal;
+        }
+        else
+        {
+          goal.pose.position.x = poses[i].transform.translation.x;
+          goal.pose.position.y = poses[i].transform.translation.y + 2.5;
+          goal.pose.position.z = poses[i].transform.translation.z;
+          move_lateral[i] = !move_lateral[i];
+          goals[i] = goal;
+        }
+      }
+    }
+
+    // Set Goals for Targets 
+    for(int i = 4; i < 6; i++)
+    {
+      if(at_target[i])
+      {
+        target_pose_index[i - 4] += 1;
+        if(target_pose_index[i - 4] == 4)
+        {
+          target_pose_index[i - 4] = 0;
+        }
+        goals[i] = circle[target_pose_index[i - 4]]; 
+      }
+    }
+
+    // Move Drones
+    for(int i = 0; i < 6; i++)
+    {
+      if(at_target[i] || in_pursuit[i])
+      {
+        goal_pub[i].publish(goals[i]);
+      }
+    }
+
     ros::spinOnce();
     loop_rate.sleep();
   }
